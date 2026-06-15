@@ -851,10 +851,18 @@ function Pacientes({pacientes,interacoes,reload}){
   async function savePaciente(data){
     try{
       if(data.id){
-        await db("cf_pacientes","UPDATE",{...data,ultima_interacao:data.ultima_interacao||new Date().toISOString().slice(0,10)});
+        const cleanU={...data,ultima_interacao:data.ultima_interacao||new Date().toISOString().slice(0,10)};
+        if(!cleanU.data_procedimento) cleanU.data_procedimento=null;
+        if(!cleanU.imc||cleanU.imc==="") cleanU.imc=null;
+        await db("cf_pacientes","UPDATE",cleanU);
         toast("Paciente atualizado!");
       }else{
-        await db("cf_pacientes","INSERT",{...data,criado_em:new Date().toISOString().slice(0,10)});
+        // Limpar campos vazios para evitar erro de tipo no Postgres
+        const clean={...data,criado_em:new Date().toISOString().slice(0,10)};
+        if(!clean.ultima_interacao) clean.ultima_interacao=null;
+        if(!clean.data_procedimento) clean.data_procedimento=null;
+        if(!clean.imc||clean.imc==="") clean.imc=null;
+        await db("cf_pacientes","INSERT",clean);
         toast("Paciente cadastrado!");
       }
       await reload();
