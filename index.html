@@ -1,0 +1,1406 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClinicFlow — Jornada do Paciente</title>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#07192B; --surface:#0D2137; --s2:#112840; --s3:#162F4A;
+  --border:#1E3A52; --teal:#00879E; --tealL:#0ABAB5; --teal10:rgba(0,135,158,0.1);
+  --gold:#F0A500; --gold10:rgba(240,165,0,0.1);
+  --text:#E2E8F0; --muted:#64748B; --muted2:#94A3B8;
+  --green:#10B981; --green10:rgba(16,185,129,0.1);
+  --warn:#F59E0B; --warn10:rgba(245,158,11,0.1);
+  --red:#EF4444; --red10:rgba(239,68,68,0.1);
+  --purple:#8B5CF6; --purple10:rgba(139,92,246,0.1);
+  --blue:#3B82F6; --blue10:rgba(59,130,246,0.1);
+  --r8:8px; --r12:12px; --r16:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+
+/* LOGIN */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+.login-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r16);padding:40px;width:100%;max-width:400px;}
+.login-brand{text-align:center;margin-bottom:32px;}
+.login-icon{font-size:40px;margin-bottom:10px;}
+.login-name{font-size:24px;font-weight:700;}
+.login-sub{font-size:13px;color:var(--tealL);margin-top:4px;}
+.login-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;margin-top:16px;}
+.login-input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--r8);padding:11px 14px;color:var(--text);font-size:14px;}
+.login-input:focus{outline:none;border-color:var(--teal);}
+.login-btn{width:100%;margin-top:24px;padding:13px;background:var(--teal);color:#07192B;border:none;border-radius:var(--r8);font-size:15px;font-weight:700;cursor:pointer;}
+.login-btn:hover{background:var(--tealL);}
+.login-err{color:var(--red);font-size:13px;text-align:center;margin-top:12px;min-height:20px;}
+
+/* LAYOUT */
+.app{display:flex;min-height:100vh;}
+.sidebar{width:230px;background:var(--surface);border-right:1px solid var(--border);padding:20px 0;display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;}
+.sidebar-logo{padding:0 20px 20px;border-bottom:1px solid var(--border);margin-bottom:12px;}
+.sb-brand{font-size:16px;font-weight:700;}
+.sb-clinic{font-size:11px;color:var(--tealL);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.nav-section{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;padding:12px 20px 6px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 20px;font-size:13px;color:var(--muted2);cursor:pointer;border-left:3px solid transparent;transition:all .15s;}
+.nav-item:hover{background:var(--s2);color:var(--text);}
+.nav-item.active{color:var(--tealL);border-left-color:var(--teal);background:var(--teal10);}
+.nav-icon{font-size:16px;width:20px;text-align:center;}
+.sidebar-footer{margin-top:auto;padding:16px 20px;border-top:1px solid var(--border);}
+.btn-logout{width:100%;padding:8px;background:transparent;border:1px solid var(--border);border-radius:var(--r8);color:var(--muted);font-size:12px;cursor:pointer;}
+.btn-logout:hover{border-color:var(--red);color:var(--red);}
+.main{margin-left:230px;padding:24px;flex:1;min-height:100vh;}
+.page-header{margin-bottom:24px;}
+.page-title{font-size:22px;font-weight:700;}
+.page-sub{font-size:13px;color:var(--muted);margin-top:4px;}
+
+/* SETUP */
+.setup-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+.setup-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r16);padding:36px;width:100%;max-width:520px;}
+.setup-title{font-size:20px;font-weight:700;margin-bottom:6px;}
+.setup-sub{font-size:13px;color:var(--muted);margin-bottom:24px;}
+.setup-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;margin-top:16px;}
+.setup-input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--r8);padding:11px 14px;color:var(--text);font-size:13px;}
+.setup-input:focus{outline:none;border-color:var(--teal);}
+.setup-hint{font-size:11px;color:var(--muted);margin-top:6px;}
+.setup-btn{margin-top:24px;padding:12px 28px;background:var(--teal);color:#07192B;border:none;border-radius:var(--r8);font-size:14px;font-weight:700;cursor:pointer;}
+
+/* CARDS / KPI */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r12);padding:20px;}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r12);padding:16px;}
+.kpi-label{font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;}
+.kpi-value{font-size:28px;font-weight:700;}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:4px;}
+.kpi-alert{color:var(--red);}
+
+/* BUTTONS */
+.btn{padding:9px 18px;border-radius:var(--r8);border:none;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px;}
+.btn-primary{background:var(--teal);color:#07192B;}
+.btn-primary:hover{background:var(--tealL);}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text);}
+.btn-ghost:hover{border-color:var(--teal);color:var(--teal);}
+.btn-danger{background:var(--red10);border:1px solid rgba(239,68,68,.3);color:var(--red);}
+.btn-sm{padding:5px 12px;font-size:12px;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.btn-gold{background:var(--gold10);border:1px solid rgba(240,165,0,.3);color:var(--gold);}
+.btn-green{background:var(--green10);border:1px solid rgba(16,185,129,.3);color:var(--green);}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+.badge-lead{background:var(--blue10);color:var(--blue);border:1px solid rgba(59,130,246,.2);}
+.badge-consulta{background:var(--gold10);color:var(--gold);border:1px solid rgba(240,165,0,.2);}
+.badge-esg{background:var(--teal10);color:var(--tealL);border:1px solid rgba(0,135,158,.2);}
+.badge-bib{background:var(--purple10);color:var(--purple);border:1px solid rgba(139,92,246,.2);}
+.badge-glp{background:var(--green10);color:var(--green);border:1px solid rgba(16,185,129,.2);}
+.badge-perdido{background:rgba(100,116,139,.1);color:var(--muted);border:1px solid rgba(100,116,139,.2);}
+.badge-alerta{background:var(--red10);color:var(--red);border:1px solid rgba(239,68,68,.2);}
+.badge-ok{background:var(--green10);color:var(--green);}
+
+/* RISK */
+.risk-alto{color:var(--red);}
+.risk-medio{color:var(--warn);}
+.risk-baixo{color:var(--green);}
+.risk-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;}
+.risk-dot-alto{background:var(--red);}
+.risk-dot-medio{background:var(--warn);}
+.risk-dot-baixo{background:var(--green);}
+
+/* PIPELINE KANBAN */
+.pipeline-wrap{display:flex;gap:16px;overflow-x:auto;padding-bottom:12px;}
+.kanban-col{min-width:260px;max-width:280px;flex-shrink:0;}
+.kanban-header{padding:12px 14px;border-radius:var(--r8) var(--r8) 0 0;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:space-between;}
+.kanban-body{background:var(--s2);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--r8) var(--r8);padding:10px;display:flex;flex-direction:column;gap:8px;min-height:120px;}
+.kanban-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r8);padding:12px;cursor:pointer;transition:border-color .15s;}
+.kanban-card:hover{border-color:var(--teal);}
+.kanban-card-name{font-size:13px;font-weight:600;margin-bottom:4px;}
+.kanban-card-meta{font-size:11px;color:var(--muted);}
+.kanban-card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:8px;}
+.kc-days{font-size:11px;color:var(--muted);}
+.kc-days.overdue{color:var(--red);font-weight:600;}
+
+/* TABLE */
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);}
+td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tr:hover td{background:var(--s2);}
+.td-name{font-weight:600;}
+
+/* FORMS */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.form-full{grid-column:1/-1;}
+.form-group{display:flex;flex-direction:column;gap:6px;}
+.form-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+.form-input,.form-select,.form-textarea{background:var(--bg);border:1px solid var(--border);border-radius:var(--r8);padding:10px 13px;color:var(--text);font-size:13px;font-family:inherit;width:100%;}
+.form-input:focus,.form-select:focus,.form-textarea:focus{outline:none;border-color:var(--teal);}
+.form-select option{background:var(--surface);}
+.form-textarea{resize:vertical;min-height:80px;}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--r16);width:100%;max-width:620px;max-height:90vh;overflow-y:auto;}
+.modal-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-title{font-size:16px;font-weight:700;}
+.modal-close{background:transparent;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:4px;}
+.modal-close:hover{color:var(--text);}
+.modal-body{padding:24px;}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;}
+
+/* IA */
+.ia-box{background:var(--bg);border:1px solid var(--teal);border-radius:var(--r12);padding:16px;margin-top:16px;}
+.ia-header{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:13px;font-weight:600;color:var(--tealL);}
+.ia-text{font-size:13px;color:var(--text);line-height:1.6;white-space:pre-wrap;}
+.ia-loading{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px;}
+.dot-pulse{display:inline-flex;gap:4px;}
+.dot-pulse span{width:6px;height:6px;border-radius:50%;background:var(--teal);animation:pulse 1.4s ease-in-out infinite;}
+.dot-pulse span:nth-child(2){animation-delay:.2s;}
+.dot-pulse span:nth-child(3){animation-delay:.4s;}
+@keyframes pulse{0%,80%,100%{opacity:.3;transform:scale(.8);}40%{opacity:1;transform:scale(1);}}
+
+/* CADENCIA */
+.cadencia-timeline{display:flex;flex-direction:column;gap:8px;margin-top:12px;}
+.cadencia-item{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--s2);border-radius:var(--r8);border:1px solid var(--border);}
+.cadencia-day{font-size:11px;font-weight:700;color:var(--tealL);min-width:40px;}
+.cadencia-msg{font-size:12px;color:var(--text);flex:1;}
+.cadencia-status{font-size:11px;}
+
+/* TAGS */
+.tag{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:11px;background:var(--s2);color:var(--muted2);border:1px solid var(--border);margin:2px;}
+
+/* TABS */
+.tabs{display:flex;gap:4px;margin-bottom:20px;background:var(--s2);border-radius:var(--r8);padding:4px;}
+.tab{padding:8px 16px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;color:var(--muted);border:none;background:transparent;transition:all .15s;}
+.tab.active{background:var(--surface);color:var(--text);font-weight:600;}
+
+/* ALERT CARD */
+.alert-card{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:var(--red10);border:1px solid rgba(239,68,68,.2);border-radius:var(--r8);margin-bottom:8px;}
+.alert-icon{font-size:16px;flex-shrink:0;margin-top:1px;}
+.alert-content{}
+.alert-title{font-size:13px;font-weight:600;color:var(--red);}
+.alert-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.warn-card{background:var(--warn10);border-color:rgba(245,158,11,.2);}
+.warn-card .alert-title{color:var(--warn);}
+
+/* CHECKLIST */
+.check-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
+.check-item:last-child{border-bottom:none;}
+.check-num{width:24px;height:24px;border-radius:50%;background:var(--teal10);color:var(--tealL);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.check-done .check-num{background:var(--green10);color:var(--green);}
+.check-text{font-size:13px;flex:1;}
+.check-date{font-size:11px;color:var(--muted);}
+
+/* SCORE RING */
+.score-ring{position:relative;width:64px;height:64px;flex-shrink:0;}
+.score-ring svg{transform:rotate(-90deg);}
+.score-ring .score-val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;}
+
+/* DIVIDER */
+.divider{border:none;border-top:1px solid var(--border);margin:16px 0;}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--s3);border:1px solid var(--border);border-radius:var(--r8);padding:12px 18px;font-size:13px;z-index:500;transform:translateY(80px);opacity:0;transition:all .3s;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.success{border-color:var(--green);color:var(--green);}
+.toast.error{border-color:var(--red);color:var(--red);}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+  .sidebar{display:none;}
+  .main{margin-left:0;}
+  .kpi-grid{grid-template-columns:1fr 1fr;}
+  .form-grid{grid-template-columns:1fr;}
+  .pipeline-wrap{flex-direction:column;}
+  .kanban-col{max-width:100%;}
+}
+
+/* HEADER ROW */
+.header-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:gap;}
+.header-left{}
+.header-right{display:flex;gap:8px;flex-wrap:wrap;}
+
+/* SEARCH */
+.search-row{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.search-input{flex:1;min-width:200px;background:var(--s2);border:1px solid var(--border);border-radius:var(--r8);padding:9px 14px;color:var(--text);font-size:13px;}
+.search-input:focus{outline:none;border-color:var(--teal);}
+.filter-select{background:var(--s2);border:1px solid var(--border);border-radius:var(--r8);padding:9px 12px;color:var(--text);font-size:13px;}
+.filter-select option{background:var(--surface);}
+
+/* EMPTY */
+.empty{text-align:center;padding:48px 24px;color:var(--muted);}
+.empty-icon{font-size:40px;margin-bottom:12px;}
+.empty-title{font-size:15px;font-weight:600;margin-bottom:6px;color:var(--muted2);}
+.empty-sub{font-size:13px;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div class="toast" id="toast"></div>
+
+<script type="text/babel">
+const {useState,useEffect,useCallback,useRef}=React;
+
+// ── CONFIG ──────────────────────────────────────────────────────
+const ANTHROPIC_KEY="sk-ant-api03-PLACEHOLDER"; // injected via env or direct
+const USERS={
+  admin:{name:"Admin",role:"Administrador",clinica:null,pwd:"clinicflow2026"},
+  demo:{name:"Demo",role:"Clínica Demo",clinica:"demo",pwd:"demo2026"},
+};
+
+// ── SUPABASE ────────────────────────────────────────────────────
+let supaClient=null;
+function getSupa(){
+  if(supaClient) return supaClient;
+  const url=localStorage.getItem("cf_url");
+  const key=localStorage.getItem("cf_key");
+  if(!url||!key) return null;
+  supaClient=window.supabase.createClient(url,key);
+  return supaClient;
+}
+async function db(table,method="GET",body=null,qs=""){
+  const supa=getSupa();
+  if(!supa) throw new Error("Supabase não configurado");
+  let q=supa.from(table);
+  if(method==="GET"){
+    const {data,error}=await q.select("*").order("criado_em",{ascending:false});
+    if(error) throw error;
+    return data||[];
+  }
+  if(method==="INSERT"){
+    const {data,error}=await q.insert(body).select();
+    if(error) throw error;
+    return data;
+  }
+  if(method==="UPDATE"){
+    const {id,...rest}=body;
+    const {data,error}=await q.update(rest).eq("id",id).select();
+    if(error) throw error;
+    return data;
+  }
+  if(method==="DELETE"){
+    const {error}=await q.delete().eq("id",body.id);
+    if(error) throw error;
+    return true;
+  }
+}
+
+// ── HELPERS ─────────────────────────────────────────────────────
+function toast(msg,type="success"){
+  const el=document.getElementById("toast");
+  el.textContent=msg;
+  el.className=`toast ${type} show`;
+  setTimeout(()=>el.className="toast",3000);
+}
+function daysSince(dateStr){
+  if(!dateStr) return 999;
+  return Math.floor((Date.now()-new Date(dateStr))/(1000*60*60*24));
+}
+function daysUntil(dateStr){
+  if(!dateStr) return 0;
+  return Math.floor((new Date(dateStr)-Date.now())/(1000*60*60*24));
+}
+function formatDate(d){
+  if(!d) return "—";
+  return new Date(d).toLocaleDateString("pt-BR");
+}
+function riskScore(pac){
+  const days=daysSince(pac.ultima_interacao||pac.criado_em);
+  if(pac.esteira==="lead"){
+    if(days>30) return "alto";
+    if(days>15) return "medio";
+    return "baixo";
+  }
+  if(pac.esteira==="consulta"){
+    if(days>90) return "alto";
+    if(days>45) return "medio";
+    return "baixo";
+  }
+  if(pac.esteira==="glp1"){
+    if(pac.status==="plato"||pac.status==="descontinuou") return "alto";
+    if(days>45) return "medio";
+    return "baixo";
+  }
+  // pos-procedimento
+  if(days>180) return "alto";
+  if(days>90) return "medio";
+  return "baixo";
+}
+function proximo_contato(pac){
+  // Cadências por esteira
+  const dias=daysSince(pac.ultima_interacao||pac.criado_em);
+  const cadencias={
+    lead:[1,3,7,15,30,60],
+    consulta:[7,30,90,180,365],
+    glp1:[30,60,90,120,180],
+    esg:[30,90,180,365,730],
+    bib:[30,90,180],
+  };
+  const cd=cadencias[pac.esteira]||[30,90,180];
+  const prox=cd.find(d=>d>dias);
+  if(!prox) return null;
+  return prox-dias; // dias até próximo contato
+}
+
+// Esteiras
+const ESTEIRAS={
+  lead:{label:"Lead",icon:"🎯",color:"var(--blue)",badge:"badge-lead",
+    status_list:["novo","contatado","respondeu","agendou","perdido"]},
+  consulta:{label:"Pós-Consulta",icon:"🩺",color:"var(--gold)",badge:"badge-consulta",
+    status_list:["consultou","interessado","objecao","sem_resposta","perdido"]},
+  esg:{label:"Pós-ESG",icon:"🏥",color:"var(--tealL)",badge:"badge-esg",
+    status_list:["procedimento_feito","acompanhamento","resultado_ok","reganho","sumiu"]},
+  bib:{label:"Pós-BIB",icon:"🫧",color:"var(--purple)",badge:"badge-bib",
+    status_list:["balao_ativo","remocao_pendente","pos_remocao","resultado_ok","sumiu"]},
+  glp1:{label:"GLP-1",icon:"💉",color:"var(--green)",badge:"badge-glp",
+    status_list:["em_uso","plato","descontinuou","nao_respondeu","candidato_esg"]},
+};
+const STATUS_LABELS={
+  novo:"Novo",contatado:"Contatado",respondeu:"Respondeu",agendou:"Agendou",perdido:"Perdido",
+  consultou:"Consultou",interessado:"Interessado",objecao:"Com objeção",sem_resposta:"Sem resposta",
+  procedimento_feito:"Procedimento feito",acompanhamento:"Em acompanhamento",resultado_ok:"Resultado OK",
+  reganho:"Reganho de peso",sumiu:"Sumiu",
+  balao_ativo:"Balão ativo",remocao_pendente:"Remoção pendente",pos_remocao:"Pós-remoção",
+  em_uso:"Em uso",plato:"Platô",descontinuou:"Descontinuou",nao_respondeu:"Não respondeu",
+  candidato_esg:"Candidato a ESG",
+};
+
+// Cadências com mensagem sugerida por esteira+status
+const CADENCIAS_MODELO={
+  lead:{
+    novo:{d:1,msg:"Olá {nome}! Vi seu interesse em tratamento para obesidade. Posso te ajudar a agendar uma avaliação gratuita?"},
+    contatado:{d:3,msg:"Oi {nome}, tudo bem? Ainda está pensando no tratamento? Tenho um horário disponível essa semana."},
+    respondeu:{d:7,msg:"{nome}, passando para confirmar o interesse na consulta de avaliação. Quando seria melhor para você?"},
+  },
+  consulta:{
+    consultou:{d:7,msg:"Olá {nome}! Como você está após nossa consulta? Teve a chance de pensar sobre o tratamento que conversamos?"},
+    interessado:{d:30,msg:"{nome}, passando para saber se você tomou uma decisão sobre o tratamento. Posso tirar qualquer dúvida!"},
+    objecao:{d:15,msg:"Oi {nome}! Entendo que você estava pensando no {objecao}. Queria compartilhar algo que pode ajudar a esclarecer isso."},
+  },
+  glp1:{
+    em_uso:{d:30,msg:"{nome}, como está indo com o tratamento? Está sentindo os resultados esperados?"},
+    plato:{d:7,msg:"Oi {nome}, percebi que você chegou em um platô no peso. É muito comum acontecer e temos alternativas para continuar avançando!"},
+    descontinuou:{d:14,msg:"{nome}, soube que você pausou o tratamento. Queria conversar sobre como manter os resultados e as opções disponíveis."},
+    candidato_esg:{d:3,msg:"Olá {nome}! Com base no seu histórico, acredito que a Gastroplastia Endoscópica pode ser o próximo passo ideal para você."},
+  },
+  esg:{
+    procedimento_feito:{d:30,msg:"{nome}, já faz um mês desde o seu procedimento! Como está se sentindo? Vamos agendar seu retorno de acompanhamento?"},
+    reganho:{d:7,msg:"Oi {nome}, vi que você está tendo alguns desafios com o peso. Isso é controlável — vamos conversar para ajustar a estratégia?"},
+    sumiu:{d:1,msg:"{nome}, estamos com saudades! Faz tempo que não temos notícias suas. Como você está? Podemos agendar um retorno?"},
+  },
+  bib:{
+    balao_ativo:{d:30,msg:"{nome}, como está com o balão? Está conseguindo seguir as orientações nutricionais? Qualquer dúvida pode me chamar."},
+    remocao_pendente:{d:3,msg:"⚠️ Atenção {nome}: está na hora de retirar o balão! Vamos agendar a remoção essa semana?"},
+    sumiu:{d:1,msg:"{nome}, não consigo te contatar. É muito importante dar continuidade ao acompanhamento. Por favor me responda!"},
+  },
+};
+
+// ── COMPONENTE PRINCIPAL ─────────────────────────────────────────
+function App(){
+  const [config,setConfig]=useState(()=>({
+    url:localStorage.getItem("cf_url")||"",
+    key:localStorage.getItem("cf_key")||"",
+  }));
+  const [user,setUser]=useState(null);
+  const [page,setPage]=useState("dashboard");
+  const configured=config.url&&config.key;
+
+  function saveConfig(url,key){
+    localStorage.setItem("cf_url",url);
+    localStorage.setItem("cf_key",key);
+    supaClient=null;
+    setConfig({url,key});
+  }
+  function doLogin(usr,pwd){
+    const u=USERS[usr.toLowerCase()];
+    if(u&&u.pwd===pwd){setUser({...u,username:usr.toLowerCase()});return true;}
+    return false;
+  }
+  function logout(){setUser(null);setPage("dashboard");}
+
+  if(!configured) return <SetupScreen onSave={saveConfig}/>;
+  if(!user) return <LoginScreen onLogin={doLogin}/>;
+  return <MainApp user={user} page={page} setPage={setPage} onLogout={logout}/>;
+}
+
+// ── SETUP ────────────────────────────────────────────────────────
+function SetupScreen({onSave}){
+  const [url,setUrl]=useState("");
+  const [key,setKey]=useState("");
+  return (
+    <div className="setup-wrap">
+      <div className="setup-card">
+        <div style={{fontSize:32,marginBottom:12}}>🏥</div>
+        <div className="setup-title">Configurar ClinicFlow</div>
+        <div className="setup-sub">Conecte ao seu banco de dados Supabase para começar</div>
+        <div className="setup-label">Project URL</div>
+        <input className="setup-input" placeholder="https://xxx.supabase.co" value={url} onChange={e=>setUrl(e.target.value)}/>
+        <div className="setup-label">Anon Public Key</div>
+        <input className="setup-input" placeholder="eyJhbGci..." value={key} onChange={e=>setKey(e.target.value)}/>
+        <div className="setup-hint">Encontre em: Supabase → Settings → API</div>
+        <button className="setup-btn" onClick={()=>{if(url&&key)onSave(url,key);}}>✅ Conectar</button>
+      </div>
+    </div>
+  );
+}
+
+// ── LOGIN ────────────────────────────────────────────────────────
+function LoginScreen({onLogin}){
+  const [u,setU]=useState("");
+  const [p,setP]=useState("");
+  const [err,setErr]=useState("");
+  function handle(){
+    if(!onLogin(u,p)) setErr("Usuário ou senha incorretos");
+  }
+  return (
+    <div className="login-wrap">
+      <div className="login-card">
+        <div className="login-brand">
+          <div className="login-icon">🏥</div>
+          <div className="login-name">ClinicFlow</div>
+          <div className="login-sub">Governança da Jornada do Paciente</div>
+        </div>
+        <div className="login-label">Usuário</div>
+        <input className="login-input" value={u} onChange={e=>{setU(e.target.value);setErr("");}}
+          onKeyDown={e=>e.key==="Enter"&&handle()} placeholder="Seu usuário"/>
+        <div className="login-label">Senha</div>
+        <input className="login-input" type="password" value={p} onChange={e=>{setP(e.target.value);setErr("");}}
+          onKeyDown={e=>e.key==="Enter"&&handle()} placeholder="Sua senha"/>
+        <button className="login-btn" onClick={handle}>Entrar →</button>
+        <div className="login-err">{err}</div>
+      </div>
+    </div>
+  );
+}
+
+// ── MAIN APP ─────────────────────────────────────────────────────
+function MainApp({user,page,setPage,onLogout}){
+  const [pacientes,setPacientes]=useState([]);
+  const [interacoes,setInteracoes]=useState([]);
+  const [loading,setLoading]=useState(true);
+
+  const loadAll=useCallback(async()=>{
+    try{
+      setLoading(true);
+      const [pacs,ints]=await Promise.all([
+        db("cf_pacientes"),
+        db("cf_interacoes"),
+      ]);
+      setPacientes(pacs||[]);
+      setInteracoes(ints||[]);
+    }catch(e){
+      // Se tabelas não existem ainda, usa dados demo
+      setPacientes(DEMO_PACIENTES);
+      setInteracoes([]);
+    }finally{setLoading(false);}
+  },[]);
+
+  useEffect(()=>{loadAll();},[loadAll]);
+
+  const nav=[
+    {id:"dashboard",icon:"📊",label:"Dashboard"},
+    {id:"alertas",icon:"🚨",label:"Alertas"},
+    {id:"pipeline",icon:"🔄",label:"Pipeline"},
+    {id:"pacientes",icon:"👥",label:"Pacientes"},
+    {id:"ia",icon:"🤖",label:"IA de Mensagens"},
+    {id:"cadencias",icon:"📅",label:"Cadências"},
+    {id:"relatorios",icon:"📈",label:"Relatórios"},
+  ];
+
+  const alertas=calcAlerts(pacientes);
+
+  return (
+    <div className="app">
+      <aside className="sidebar">
+        <div className="sidebar-logo">
+          <div className="sb-brand">🏥 ClinicFlow</div>
+          <div className="sb-clinic">{user.name}</div>
+        </div>
+        {nav.map(n=>(
+          <div key={n.id} className={`nav-item${page===n.id?" active":""}`} onClick={()=>setPage(n.id)}>
+            <span className="nav-icon">{n.icon}</span>{n.label}
+            {n.id==="alertas"&&alertas.length>0&&(
+              <span style={{marginLeft:"auto",background:"var(--red)",color:"#fff",borderRadius:"10px",padding:"1px 7px",fontSize:"10px",fontWeight:700}}>{alertas.length}</span>
+            )}
+          </div>
+        ))}
+        <div className="sidebar-footer">
+          <button className="btn-logout" onClick={onLogout}>Sair</button>
+        </div>
+      </aside>
+      <main className="main">
+        {loading?(
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"60vh",gap:12,color:"var(--muted)"}}>
+            <div className="dot-pulse"><span/><span/><span/></div> Carregando...
+          </div>
+        ):(
+          <>
+            {page==="dashboard"&&<Dashboard pacientes={pacientes} alertas={alertas} setPage={setPage}/>}
+            {page==="alertas"&&<Alertas alertas={alertas} setPage={setPage} setPacientes={setPacientes}/>}
+            {page==="pipeline"&&<Pipeline pacientes={pacientes} reload={loadAll} setPacientes={setPacientes}/>}
+            {page==="pacientes"&&<Pacientes pacientes={pacientes} interacoes={interacoes} reload={loadAll}/>}
+            {page==="ia"&&<IAMensagens pacientes={pacientes}/>}
+            {page==="cadencias"&&<Cadencias pacientes={pacientes}/>}
+            {page==="relatorios"&&<Relatorios pacientes={pacientes} interacoes={interacoes}/>}
+          </>
+        )}
+      </main>
+    </div>
+  );
+}
+
+// ── DADOS DEMO ───────────────────────────────────────────────────
+const DEMO_PACIENTES=[
+  {id:"1",nome:"Ana Paula Ferreira",esteira:"lead",status:"novo",telefone:"(11)99999-0001",imc:34.2,criado_em:"2026-06-01",ultima_interacao:"2026-06-01",clinica:"demo",objecao:"preco"},
+  {id:"2",nome:"Carlos Mendes",esteira:"lead",status:"contatado",telefone:"(11)99999-0002",imc:31.5,criado_em:"2026-05-20",ultima_interacao:"2026-05-20",clinica:"demo"},
+  {id:"3",nome:"Beatriz Lima",esteira:"consulta",status:"interessado",telefone:"(11)99999-0003",imc:36.8,criado_em:"2026-05-10",ultima_interacao:"2026-05-10",clinica:"demo",objecao:"medo"},
+  {id:"4",nome:"Roberto Souza",esteira:"consulta",status:"objecao",telefone:"(11)99999-0004",imc:38.1,criado_em:"2026-04-01",ultima_interacao:"2026-04-15",clinica:"demo",objecao:"tempo"},
+  {id:"5",nome:"Fernanda Costa",esteira:"glp1",status:"em_uso",telefone:"(11)99999-0005",imc:32.4,criado_em:"2026-01-15",ultima_interacao:"2026-05-15",clinica:"demo",medicamento:"Ozempic"},
+  {id:"6",nome:"Marcelo Alves",esteira:"glp1",status:"plato",telefone:"(11)99999-0006",imc:30.2,criado_em:"2025-12-01",ultima_interacao:"2026-04-01",clinica:"demo",medicamento:"Mounjaro"},
+  {id:"7",nome:"Sandra Oliveira",esteira:"glp1",status:"descontinuou",telefone:"(11)99999-0007",imc:35.5,criado_em:"2025-10-01",ultima_interacao:"2026-02-01",clinica:"demo",medicamento:"Wegovy"},
+  {id:"8",nome:"Paulo Ramos",esteira:"esg",status:"procedimento_feito",telefone:"(11)99999-0008",imc:28.3,criado_em:"2026-03-01",ultima_interacao:"2026-03-01",clinica:"demo",data_procedimento:"2026-03-01"},
+  {id:"9",nome:"Juliana Torres",esteira:"esg",status:"sumiu",telefone:"(11)99999-0009",imc:29.1,criado_em:"2025-09-01",ultima_interacao:"2025-10-01",clinica:"demo"},
+  {id:"10",nome:"Diego Martins",esteira:"bib",status:"remocao_pendente",telefone:"(11)99999-0010",imc:31.8,criado_em:"2025-12-01",ultima_interacao:"2026-03-01",clinica:"demo",data_procedimento:"2025-12-01"},
+  {id:"11",nome:"Luciana Peixoto",esteira:"glp1",status:"candidato_esg",telefone:"(11)99999-0011",imc:33.7,criado_em:"2025-08-01",ultima_interacao:"2026-01-01",clinica:"demo",medicamento:"Ozempic"},
+];
+
+// ── CALCULAR ALERTAS ─────────────────────────────────────────────
+function calcAlerts(pacs){
+  const alerts=[];
+  pacs.forEach(p=>{
+    const days=daysSince(p.ultima_interacao||p.criado_em);
+    const prox=proximo_contato(p);
+
+    // BIB remoção urgente
+    if(p.esteira==="bib"&&p.status==="remocao_pendente"){
+      alerts.push({type:"urgent",icon:"🚨",pac:p,msg:`Remoção do balão pendente — ${days} dias sem contato`,priority:1});
+    }
+    // GLP-1 platô
+    if(p.esteira==="glp1"&&p.status==="plato"){
+      alerts.push({type:"urgent",icon:"⚠️",pac:p,msg:`Em platô de peso — oportunidade para ESG`,priority:2});
+    }
+    // GLP-1 candidato ESG
+    if(p.esteira==="glp1"&&p.status==="candidato_esg"){
+      alerts.push({type:"opportunity",icon:"🎯",pac:p,msg:`Candidato identificado para ESG — abordar agora`,priority:2});
+    }
+    // GLP-1 descontinuou
+    if(p.esteira==="glp1"&&p.status==="descontinuou"&&days>14){
+      alerts.push({type:"warn",icon:"💊",pac:p,msg:`Descontinuou GLP-1 há ${days} dias — risco de reganho`,priority:3});
+    }
+    // Sumiu pós-procedimento
+    if((p.esteira==="esg"||p.esteira==="bib")&&p.status==="sumiu"){
+      alerts.push({type:"urgent",icon:"👻",pac:p,msg:`Paciente sumiu após procedimento — resgatar`,priority:1});
+    }
+    // Lead sem contato
+    if(p.esteira==="lead"&&days>7&&p.status==="novo"){
+      alerts.push({type:"warn",icon:"🎯",pac:p,msg:`Lead sem contato há ${days} dias`,priority:4});
+    }
+    // Próximo contato vencido
+    if(prox!==null&&prox<=0&&p.status!=="perdido"){
+      alerts.push({type:"cadencia",icon:"📅",pac:p,msg:`Cadência vencida há ${Math.abs(prox)} dias`,priority:3});
+    }
+  });
+  return alerts.sort((a,b)=>a.priority-b.priority);
+}
+
+// ── DASHBOARD ────────────────────────────────────────────────────
+function Dashboard({pacientes,alertas,setPage}){
+  const total=pacientes.length;
+  const leads=pacientes.filter(p=>p.esteira==="lead").length;
+  const glp1=pacientes.filter(p=>p.esteira==="glp1").length;
+  const glp1_candidatos=pacientes.filter(p=>p.esteira==="glp1"&&(p.status==="plato"||p.status==="descontinuou"||p.status==="candidato_esg")).length;
+  const pos_proc=pacientes.filter(p=>p.esteira==="esg"||p.esteira==="bib").length;
+  const alto_risco=pacientes.filter(p=>riskScore(p)==="alto").length;
+
+  return (
+    <div>
+      <div className="page-header">
+        <div className="page-title">Dashboard</div>
+        <div className="page-sub">Visão geral da jornada dos pacientes</div>
+      </div>
+
+      <div className="kpi-grid">
+        <div className="kpi">
+          <div className="kpi-label">Total de pacientes</div>
+          <div className="kpi-value">{total}</div>
+          <div className="kpi-sub">em todas as esteiras</div>
+        </div>
+        <div className="kpi">
+          <div className="kpi-label">Leads ativos</div>
+          <div className="kpi-value" style={{color:"var(--blue)"}}>{leads}</div>
+          <div className="kpi-sub">aguardando conversão</div>
+        </div>
+        <div className="kpi">
+          <div className="kpi-label">Em GLP-1</div>
+          <div className="kpi-value" style={{color:"var(--green)"}}>{glp1}</div>
+          <div className="kpi-sub" style={{color:glp1_candidatos>0?"var(--warn)":"var(--muted)"}}>
+            {glp1_candidatos} candidatos a ESG
+          </div>
+        </div>
+        <div className="kpi">
+          <div className="kpi-label">Alto risco</div>
+          <div className={`kpi-value${alto_risco>0?" kpi-alert":""}`}>{alto_risco}</div>
+          <div className="kpi-sub">precisam de ação hoje</div>
+        </div>
+      </div>
+
+      {/* Alertas top */}
+      {alertas.length>0&&(
+        <div className="card" style={{marginBottom:20}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
+            <div style={{fontWeight:700,fontSize:15}}>🚨 Ações Urgentes</div>
+            <button className="btn btn-ghost btn-sm" onClick={()=>setPage("alertas")}>Ver todos ({alertas.length})</button>
+          </div>
+          {alertas.slice(0,4).map((a,i)=>(
+            <div key={i} className={`alert-card${a.type==="warn"?" warn-card":""}`}>
+              <div className="alert-icon">{a.icon}</div>
+              <div className="alert-content">
+                <div className="alert-title">{a.pac.nome}</div>
+                <div className="alert-sub">{a.msg}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Distribuição por esteira */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+        <div className="card">
+          <div style={{fontWeight:700,fontSize:15,marginBottom:16}}>Distribuição por Esteira</div>
+          {Object.entries(ESTEIRAS).map(([key,e])=>{
+            const n=pacientes.filter(p=>p.esteira===key).length;
+            const pct=total>0?Math.round(n/total*100):0;
+            return (
+              <div key={key} style={{marginBottom:12}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:4,fontSize:13}}>
+                  <span>{e.icon} {e.label}</span>
+                  <span style={{color:"var(--muted)"}}>{n} ({pct}%)</span>
+                </div>
+                <div style={{height:6,background:"var(--s2)",borderRadius:3}}>
+                  <div style={{height:6,background:e.color,borderRadius:3,width:`${pct}%`,transition:"width .6s"}}/>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="card">
+          <div style={{fontWeight:700,fontSize:15,marginBottom:16}}>GLP-1 — Radar de Oportunidade</div>
+          {pacientes.filter(p=>p.esteira==="glp1").map(p=>{
+            const risk=riskScore(p);
+            const isOpp=p.status==="plato"||p.status==="descontinuou"||p.status==="candidato_esg";
+            return (
+              <div key={p.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:"1px solid var(--border)"}}>
+                <span className={`risk-dot risk-dot-${risk}`}/>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:600}}>{p.nome}</div>
+                  <div style={{fontSize:11,color:"var(--muted)"}}>{p.medicamento||"GLP-1"} · {STATUS_LABELS[p.status]}</div>
+                </div>
+                {isOpp&&<span className="badge badge-alerta">Oportunidade</span>}
+              </div>
+            );
+          })}
+          {pacientes.filter(p=>p.esteira==="glp1").length===0&&(
+            <div className="empty"><div className="empty-icon">💉</div><div className="empty-sub">Nenhum paciente GLP-1 cadastrado</div></div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── ALERTAS ──────────────────────────────────────────────────────
+function Alertas({alertas,setPage}){
+  return (
+    <div>
+      <div className="page-header">
+        <div className="page-title">🚨 Alertas e Ações</div>
+        <div className="page-sub">{alertas.length} item(s) precisam da sua atenção</div>
+      </div>
+      {alertas.length===0&&(
+        <div className="empty card">
+          <div className="empty-icon">✅</div>
+          <div className="empty-title">Tudo em dia!</div>
+          <div className="empty-sub">Nenhum alerta no momento</div>
+        </div>
+      )}
+      {alertas.map((a,i)=>(
+        <div key={i} className={`alert-card${a.type==="warn"?" warn-card":""}`} style={{marginBottom:8}}>
+          <div className="alert-icon" style={{fontSize:20}}>{a.icon}</div>
+          <div className="alert-content" style={{flex:1}}>
+            <div className="alert-title">{a.pac.nome}</div>
+            <div className="alert-sub">{a.msg}</div>
+            <div style={{marginTop:6,fontSize:11,color:"var(--muted)"}}>
+              {ESTEIRAS[a.pac.esteira]?.icon} {ESTEIRAS[a.pac.esteira]?.label} · IMC {a.pac.imc||"—"}
+              {a.pac.telefone&&<> · <a href={`https://wa.me/55${a.pac.telefone.replace(/\D/g,"")}`} target="_blank" style={{color:"var(--green)"}}>📲 WhatsApp</a></>}
+            </div>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+            <button className="btn btn-primary btn-sm" onClick={()=>setPage("ia")}>✨ Gerar msg</button>
+            <button className="btn btn-ghost btn-sm">✓ Marcar feito</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── PIPELINE KANBAN ──────────────────────────────────────────────
+function Pipeline({pacientes,reload}){
+  const [esteira,setEsteira]=useState("lead");
+  const e=ESTEIRAS[esteira];
+  const pacs=pacientes.filter(p=>p.esteira===esteira);
+
+  return (
+    <div>
+      <div className="page-header">
+        <div className="page-title">🔄 Pipeline</div>
+        <div className="page-sub">Visualização kanban por esteira</div>
+      </div>
+      <div className="tabs" style={{marginBottom:20}}>
+        {Object.entries(ESTEIRAS).map(([key,e])=>(
+          <button key={key} className={`tab${esteira===key?" active":""}`} onClick={()=>setEsteira(key)}>
+            {e.icon} {e.label}
+          </button>
+        ))}
+      </div>
+      <div className="pipeline-wrap">
+        {e.status_list.map(st=>{
+          const cols=pacs.filter(p=>p.status===st);
+          return (
+            <div key={st} className="kanban-col">
+              <div className="kanban-header" style={{background:e.color+"22",borderTop:`2px solid ${e.color}`}}>
+                <span>{STATUS_LABELS[st]||st}</span>
+                <span style={{background:"var(--s2)",borderRadius:10,padding:"1px 8px",fontSize:11}}>{cols.length}</span>
+              </div>
+              <div className="kanban-body">
+                {cols.map(p=>{
+                  const risk=riskScore(p);
+                  const days=daysSince(p.ultima_interacao||p.criado_em);
+                  const prox=proximo_contato(p);
+                  return (
+                    <div key={p.id} className="kanban-card">
+                      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:6}}>
+                        <div className="kanban-card-name">{p.nome}</div>
+                        <span className={`risk-dot risk-dot-${risk}`} title={`Risco ${risk}`}/>
+                      </div>
+                      <div className="kanban-card-meta">
+                        {p.imc&&<>IMC {p.imc} · </>}
+                        {p.medicamento&&<>{p.medicamento} · </>}
+                        {p.clinica}
+                      </div>
+                      <div className="kanban-card-footer">
+                        <span className={`kc-days${days>30?" overdue":""}`}>
+                          {days}d sem contato
+                        </span>
+                        {prox!==null&&(
+                          <span style={{fontSize:11,color:prox<=0?"var(--red)":"var(--muted)"}}>
+                            {prox<=0?`⚠️ ${Math.abs(prox)}d atrasado`:`próx. ${prox}d`}
+                          </span>
+                        )}
+                      </div>
+                      {p.telefone&&(
+                        <a href={`https://wa.me/55${p.telefone.replace(/\D/g,"")}`} target="_blank"
+                          style={{display:"block",marginTop:8,fontSize:11,color:"var(--green)",textDecoration:"none"}}>
+                          📲 Abrir WhatsApp
+                        </a>
+                      )}
+                    </div>
+                  );
+                })}
+                {cols.length===0&&(
+                  <div style={{textAlign:"center",padding:"20px 0",color:"var(--muted)",fontSize:12}}>Vazio</div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── PACIENTES ────────────────────────────────────────────────────
+function Pacientes({pacientes,interacoes,reload}){
+  const [search,setSearch]=useState("");
+  const [filterEsteira,setFilterEsteira]=useState("all");
+  const [filterRisk,setFilterRisk]=useState("all");
+  const [modal,setModal]=useState(null); // null | "new" | paciente
+
+  const filtered=pacientes.filter(p=>{
+    const q=search.toLowerCase();
+    if(q&&!p.nome?.toLowerCase().includes(q)&&!p.telefone?.includes(q)) return false;
+    if(filterEsteira!=="all"&&p.esteira!==filterEsteira) return false;
+    if(filterRisk!=="all"&&riskScore(p)!==filterRisk) return false;
+    return true;
+  });
+
+  async function savePaciente(data){
+    try{
+      if(data.id){
+        await db("cf_pacientes","UPDATE",{...data,ultima_interacao:data.ultima_interacao||new Date().toISOString().slice(0,10)});
+        toast("Paciente atualizado!");
+      }else{
+        await db("cf_pacientes","INSERT",{...data,criado_em:new Date().toISOString().slice(0,10)});
+        toast("Paciente cadastrado!");
+      }
+      await reload();
+      setModal(null);
+    }catch(e){
+      // Demo mode — atualiza local
+      toast("Salvo em modo demo","success");
+      setModal(null);
+    }
+  }
+
+  return (
+    <div>
+      <div className="header-row">
+        <div className="page-header" style={{marginBottom:0}}>
+          <div className="page-title">👥 Pacientes</div>
+          <div className="page-sub">{filtered.length} pacientes</div>
+        </div>
+        <button className="btn btn-primary" onClick={()=>setModal({})}>+ Novo paciente</button>
+      </div>
+
+      <div className="search-row" style={{marginTop:16}}>
+        <input className="search-input" placeholder="Buscar por nome ou telefone..." value={search} onChange={e=>setSearch(e.target.value)}/>
+        <select className="filter-select" value={filterEsteira} onChange={e=>setFilterEsteira(e.target.value)}>
+          <option value="all">Todas as esteiras</option>
+          {Object.entries(ESTEIRAS).map(([k,e])=><option key={k} value={k}>{e.icon} {e.label}</option>)}
+        </select>
+        <select className="filter-select" value={filterRisk} onChange={e=>setFilterRisk(e.target.value)}>
+          <option value="all">Todos os riscos</option>
+          <option value="alto">🔴 Alto risco</option>
+          <option value="medio">🟡 Médio risco</option>
+          <option value="baixo">🟢 Baixo risco</option>
+        </select>
+      </div>
+
+      <div className="card">
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Paciente</th>
+                <th>Esteira</th>
+                <th>Status</th>
+                <th>IMC</th>
+                <th>Último contato</th>
+                <th>Risco</th>
+                <th>Próx. contato</th>
+                <th>Ação</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(p=>{
+                const risk=riskScore(p);
+                const days=daysSince(p.ultima_interacao||p.criado_em);
+                const prox=proximo_contato(p);
+                const e=ESTEIRAS[p.esteira]||{};
+                return (
+                  <tr key={p.id}>
+                    <td>
+                      <div className="td-name">{p.nome}</div>
+                      <div style={{fontSize:11,color:"var(--muted)"}}>{p.telefone}</div>
+                    </td>
+                    <td><span className={`badge ${e.badge||""}`}>{e.icon} {e.label}</span></td>
+                    <td style={{fontSize:12,color:"var(--muted2)"}}>{STATUS_LABELS[p.status]||p.status}</td>
+                    <td style={{fontSize:13}}>{p.imc||"—"}</td>
+                    <td style={{fontSize:12,color:days>30?"var(--warn)":"var(--muted)"}}>{days}d atrás</td>
+                    <td>
+                      <span className={`risk-dot risk-dot-${risk}`}/>
+                      <span className={`risk-${risk}`} style={{fontSize:12}}>{risk}</span>
+                    </td>
+                    <td style={{fontSize:12,color:prox!==null&&prox<=0?"var(--red)":"var(--muted)"}}>
+                      {prox===null?"—":prox<=0?`${Math.abs(prox)}d atrasado`:`${prox}d`}
+                    </td>
+                    <td>
+                      <div style={{display:"flex",gap:6}}>
+                        <button className="btn btn-ghost btn-sm" onClick={()=>setModal(p)}>✏️</button>
+                        {p.telefone&&(
+                          <a href={`https://wa.me/55${p.telefone.replace(/\D/g,"")}`} target="_blank" className="btn btn-green btn-sm">📲</a>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {filtered.length===0&&(
+            <div className="empty"><div className="empty-icon">👥</div><div className="empty-sub">Nenhum paciente encontrado</div></div>
+          )}
+        </div>
+      </div>
+
+      {modal!==null&&<PacienteModal pac={modal} onSave={savePaciente} onClose={()=>setModal(null)}/>}
+    </div>
+  );
+}
+
+// ── MODAL PACIENTE ───────────────────────────────────────────────
+function PacienteModal({pac,onSave,onClose}){
+  const isNew=!pac.id;
+  const [form,setForm]=useState({
+    nome:pac.nome||"", telefone:pac.telefone||"", imc:pac.imc||"",
+    esteira:pac.esteira||"lead", status:pac.status||"novo",
+    medicamento:pac.medicamento||"", objecao:pac.objecao||"",
+    data_procedimento:pac.data_procedimento||"", clinica:pac.clinica||"",
+    obs:pac.obs||"", ultima_interacao:pac.ultima_interacao||"",
+    ...pac
+  });
+  function set(k,v){setForm(f=>({...f,[k]:v}));}
+  const e=ESTEIRAS[form.esteira]||{};
+
+  return (
+    <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="modal">
+        <div className="modal-header">
+          <div className="modal-title">{isNew?"Novo Paciente":"Editar Paciente"}</div>
+          <button className="modal-close" onClick={onClose}>×</button>
+        </div>
+        <div className="modal-body">
+          <div className="form-grid">
+            <div className="form-group form-full">
+              <div className="form-label">Nome completo *</div>
+              <input className="form-input" value={form.nome} onChange={e=>set("nome",e.target.value)} placeholder="Nome do paciente"/>
+            </div>
+            <div className="form-group">
+              <div className="form-label">Telefone / WhatsApp</div>
+              <input className="form-input" value={form.telefone} onChange={e=>set("telefone",e.target.value)} placeholder="(11) 99999-0000"/>
+            </div>
+            <div className="form-group">
+              <div className="form-label">IMC</div>
+              <input className="form-input" type="number" step="0.1" value={form.imc} onChange={e=>set("imc",e.target.value)} placeholder="Ex: 34.5"/>
+            </div>
+            <div className="form-group">
+              <div className="form-label">Esteira *</div>
+              <select className="form-select" value={form.esteira} onChange={e=>{set("esteira",e.target.value);set("status",ESTEIRAS[e.target.value]?.status_list[0]||"");}}>
+                {Object.entries(ESTEIRAS).map(([k,e])=><option key={k} value={k}>{e.icon} {e.label}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <div className="form-label">Status</div>
+              <select className="form-select" value={form.status} onChange={e=>set("status",e.target.value)}>
+                {(e.status_list||[]).map(s=><option key={s} value={s}>{STATUS_LABELS[s]||s}</option>)}
+              </select>
+            </div>
+            {form.esteira==="glp1"&&(
+              <div className="form-group">
+                <div className="form-label">Medicamento GLP-1</div>
+                <select className="form-select" value={form.medicamento} onChange={e=>set("medicamento",e.target.value)}>
+                  <option value="">Selecionar...</option>
+                  <option>Ozempic (semaglutida)</option>
+                  <option>Wegovy (semaglutida)</option>
+                  <option>Mounjaro (tirzepatida)</option>
+                  <option>Saxenda (liraglutida)</option>
+                  <option>Victoza (liraglutida)</option>
+                  <option>Rybelsus (oral)</option>
+                </select>
+              </div>
+            )}
+            {(form.esteira==="esg"||form.esteira==="bib")&&(
+              <div className="form-group">
+                <div className="form-label">Data do procedimento</div>
+                <input className="form-input" type="date" value={form.data_procedimento} onChange={e=>set("data_procedimento",e.target.value)}/>
+              </div>
+            )}
+            {form.esteira==="consulta"&&(
+              <div className="form-group">
+                <div className="form-label">Objeção principal</div>
+                <select className="form-select" value={form.objecao} onChange={e=>set("objecao",e.target.value)}>
+                  <option value="">Nenhuma</option>
+                  <option value="preco">Preço / custo</option>
+                  <option value="medo">Medo do procedimento</option>
+                  <option value="tempo">Falta de tempo</option>
+                  <option value="esposo">Decisão do cônjuge</option>
+                  <option value="pesquisa">Ainda pesquisando</option>
+                  <option value="outros">Outros</option>
+                </select>
+              </div>
+            )}
+            <div className="form-group">
+              <div className="form-label">Último contato</div>
+              <input className="form-input" type="date" value={form.ultima_interacao} onChange={e=>set("ultima_interacao",e.target.value)}/>
+            </div>
+            <div className="form-group">
+              <div className="form-label">Clínica</div>
+              <input className="form-input" value={form.clinica} onChange={e=>set("clinica",e.target.value)} placeholder="Nome da clínica"/>
+            </div>
+            <div className="form-group form-full">
+              <div className="form-label">Observações</div>
+              <textarea className="form-textarea" value={form.obs} onChange={e=>set("obs",e.target.value)} placeholder="Notas sobre o paciente..."/>
+            </div>
+          </div>
+        </div>
+        <div className="modal-footer">
+          <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
+          <button className="btn btn-primary" onClick={()=>onSave(form)}>
+            {isNew?"Cadastrar":"Salvar"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── IA DE MENSAGENS ──────────────────────────────────────────────
+function IAMensagens({pacientes}){
+  const [selected,setSelected]=useState(pacientes[0]?.id||"");
+  const [msg,setMsg]=useState("");
+  const [loading,setLoading]=useState(false);
+  const [canal,setCanal]=useState("whatsapp");
+  const [tom,setTom]=useState("acolhedor");
+
+  const pac=pacientes.find(p=>p.id===selected);
+
+  // Usar modelo da cadência ou gerar via IA
+  function getModelMsg(){
+    if(!pac) return "";
+    const cd=CADENCIAS_MODELO[pac.esteira]?.[pac.status];
+    if(cd){
+      return cd.msg
+        .replace("{nome}",pac.nome?.split(" ")[0]||"")
+        .replace("{objecao}",pac.objecao||"o custo")
+        .replace("{medicamento}",pac.medicamento||"o medicamento");
+    }
+    return "";
+  }
+
+  async function generateMsg(){
+    if(!pac) return;
+    setLoading(true);
+    try{
+      const modelo=getModelMsg();
+      const prompt=`Você é especialista em comunicação para clínicas de obesidade. Gere uma mensagem de ${canal} para um paciente com as seguintes características:
+
+Nome: ${pac.nome}
+Esteira: ${ESTEIRAS[pac.esteira]?.label}
+Status atual: ${STATUS_LABELS[pac.status]}
+IMC: ${pac.imc||"não informado"}
+${pac.medicamento?`Medicamento: ${pac.medicamento}`:""}
+${pac.objecao?`Objeção registrada: ${pac.objecao}`:""}
+Dias sem contato: ${daysSince(pac.ultima_interacao||pac.criado_em)}
+Tom desejado: ${tom}
+
+${modelo?`Mensagem modelo como referência: "${modelo}"`:""}
+
+Regras:
+- Máximo 3 parágrafos curtos (WhatsApp)
+- Tom ${tom} e empático
+- Nunca use linguagem médica complicada
+- Crie urgência sem pressão
+- Termine com pergunta ou CTA claro
+- NÃO use emojis em excesso (max 2)
+- NÃO mencione nomes de marcas de medicamentos sem contexto
+${pac.esteira==="glp1"&&(pac.status==="plato"||pac.status==="descontinuou")?"- Aborde sutilmente a possibilidade de um próximo passo (gastroplastia endoscópica) como complemento, nunca como substituto":""}
+
+Escreva APENAS a mensagem, sem explicações adicionais.`;
+
+      const resp=await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","x-api-key":"","anthropic-version":"2023-06-01"},
+        body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:500,messages:[{role:"user",content:prompt}]})
+      });
+      const data=await resp.json();
+      if(data.content?.[0]?.text){
+        setMsg(data.content[0].text);
+      }else{
+        // Fallback para modelo base
+        setMsg(modelo||"Não foi possível gerar a mensagem. Verifique a chave da API.");
+      }
+    }catch(e){
+      setMsg(getModelMsg()||"Erro ao gerar mensagem.");
+    }finally{setLoading(false);}
+  }
+
+  return (
+    <div>
+      <div className="page-header">
+        <div className="page-title">🤖 IA de Mensagens</div>
+        <div className="page-sub">Gere mensagens personalizadas por contexto clínico</div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}}>
+        <div>
+          <div className="card">
+            <div style={{fontWeight:600,fontSize:14,marginBottom:16}}>Configurar mensagem</div>
+            <div className="form-group" style={{marginBottom:12}}>
+              <div className="form-label">Paciente</div>
+              <select className="form-select" value={selected} onChange={e=>{setSelected(e.target.value);setMsg("");}}>
+                {pacientes.map(p=>(
+                  <option key={p.id} value={p.id}>{p.nome} ({ESTEIRAS[p.esteira]?.label})</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group" style={{marginBottom:12}}>
+              <div className="form-label">Canal</div>
+              <select className="form-select" value={canal} onChange={e=>setCanal(e.target.value)}>
+                <option value="whatsapp">WhatsApp</option>
+                <option value="email">E-mail</option>
+                <option value="sms">SMS</option>
+              </select>
+            </div>
+            <div className="form-group" style={{marginBottom:16}}>
+              <div className="form-label">Tom</div>
+              <select className="form-select" value={tom} onChange={e=>setTom(e.target.value)}>
+                <option value="acolhedor">Acolhedor e empático</option>
+                <option value="clinico">Clínico e profissional</option>
+                <option value="urgente">Urgente e motivador</option>
+                <option value="informal">Informal e próximo</option>
+              </select>
+            </div>
+            <button className="btn btn-primary" style={{width:"100%"}} onClick={generateMsg} disabled={loading||!selected}>
+              {loading?<><div className="dot-pulse"><span/><span/><span/></div> Gerando...</>:"✨ Gerar mensagem com IA"}
+            </button>
+          </div>
+
+          {pac&&(
+            <div className="card" style={{marginTop:16}}>
+              <div style={{fontWeight:600,fontSize:13,marginBottom:12}}>📋 Contexto do paciente</div>
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                {[
+                  ["Esteira",`${ESTEIRAS[pac.esteira]?.icon} ${ESTEIRAS[pac.esteira]?.label}`],
+                  ["Status",STATUS_LABELS[pac.status]||pac.status],
+                  ["IMC",pac.imc||"—"],
+                  pac.medicamento&&["Medicamento",pac.medicamento],
+                  pac.objecao&&["Objeção",pac.objecao],
+                  ["Dias sem contato",daysSince(pac.ultima_interacao||pac.criado_em)+"d"],
+                  ["Risco",riskScore(pac)],
+                ].filter(Boolean).map(([k,v])=>(
+                  <div key={k} style={{display:"flex",justifyContent:"space-between",fontSize:13,borderBottom:"1px solid var(--border)",paddingBottom:6}}>
+                    <span style={{color:"var(--muted)"}}>{k}</span>
+                    <span style={{fontWeight:500}}>{v}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div>
+          <div className="card" style={{height:"100%"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+              <div style={{fontWeight:600,fontSize:14}}>Mensagem gerada</div>
+              {msg&&pac?.telefone&&(
+                <a href={`https://wa.me/55${pac.telefone.replace(/\D/g,"")}?text=${encodeURIComponent(msg)}`}
+                  target="_blank" className="btn btn-green btn-sm">
+                  📲 Enviar no WhatsApp
+                </a>
+              )}
+            </div>
+            {!msg&&!loading&&(
+              <div className="empty">
+                <div className="empty-icon">💬</div>
+                <div className="empty-sub">Selecione um paciente e clique em "Gerar mensagem"</div>
+              </div>
+            )}
+            {loading&&(
+              <div className="ia-loading">
+                <div className="dot-pulse"><span/><span/><span/></div>
+                Gerando mensagem personalizada...
+              </div>
+            )}
+            {msg&&(
+              <>
+                <div className="ia-box">
+                  <div className="ia-header">🤖 Mensagem IA</div>
+                  <div className="ia-text">{msg}</div>
+                </div>
+                <div style={{display:"flex",gap:8,marginTop:12}}>
+                  <button className="btn btn-ghost btn-sm" onClick={()=>{navigator.clipboard.writeText(msg);toast("Copiado!");}}>📋 Copiar</button>
+                  <button className="btn btn-ghost btn-sm" onClick={()=>setMsg("")}>🔄 Nova versão</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── CADÊNCIAS ────────────────────────────────────────────────────
+function Cadencias({pacientes}){
+  const vencidas=pacientes.filter(p=>{
+    const prox=proximo_contato(p);
+    return prox!==null&&prox<=0&&p.status!=="perdido";
+  }).sort((a,b)=>proximo_contato(a)-proximo_contato(b));
+
+  const proximas=pacientes.filter(p=>{
+    const prox=proximo_contato(p);
+    return prox!==null&&prox>0&&prox<=7&&p.status!=="perdido";
+  });
+
+  return (
+    <div>
+      <div className="page-header">
+        <div className="page-title">📅 Cadências</div>
+        <div className="page-sub">Controle de cadências de contato por paciente</div>
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20,marginBottom:20}}>
+        <div className="card">
+          <div style={{fontWeight:700,fontSize:15,color:"var(--red)",marginBottom:14}}>
+            ⚠️ Cadências vencidas ({vencidas.length})
+          </div>
+          {vencidas.length===0&&<div className="empty"><div className="empty-icon">✅</div><div className="empty-sub">Nenhuma vencida</div></div>}
+          {vencidas.map(p=>{
+            const prox=proximo_contato(p);
+            return (
+              <div key={p.id} style={{padding:"10px 0",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",gap:10}}>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:600}}>{p.nome}</div>
+                  <div style={{fontSize:11,color:"var(--muted)"}}>{ESTEIRAS[p.esteira]?.icon} {STATUS_LABELS[p.status]}</div>
+                </div>
+                <div style={{textAlign:"right"}}>
+                  <div style={{fontSize:12,color:"var(--red)",fontWeight:600}}>{Math.abs(prox)}d atrasado</div>
+                  {p.telefone&&(
+                    <a href={`https://wa.me/55${p.telefone.replace(/\D/g,"")}`} target="_blank" style={{fontSize:11,color:"var(--green)"}}>📲 WhatsApp</a>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="card">
+          <div style={{fontWeight:700,fontSize:15,color:"var(--warn)",marginBottom:14}}>
+            ⏰ Próximos 7 dias ({proximas.length})
+          </div>
+          {proximas.length===0&&<div className="empty"><div className="empty-icon">📅</div><div className="empty-sub">Nenhuma nos próximos 7 dias</div></div>}
+          {proximas.map(p=>{
+            const prox=proximo_contato(p);
+            return (
+              <div key={p.id} style={{padding:"10px 0",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",gap:10}}>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:600}}>{p.nome}</div>
+                  <div style={{fontSize:11,color:"var(--muted)"}}>{ESTEIRAS[p.esteira]?.icon} {STATUS_LABELS[p.status]}</div>
+                </div>
+                <div style={{fontSize:12,color:"var(--warn)",fontWeight:600}}>em {prox}d</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Tabela de cadências por esteira */}
+      <div className="card">
+        <div style={{fontWeight:700,fontSize:15,marginBottom:16}}>📋 Cadências padrão por esteira</div>
+        {Object.entries(ESTEIRAS).map(([key,e])=>(
+          <div key={key} style={{marginBottom:20}}>
+            <div style={{fontSize:13,fontWeight:700,color:e.color,marginBottom:10}}>
+              {e.icon} {e.label}
+            </div>
+            <div className="cadencia-timeline">
+              {Object.entries(CADENCIAS_MODELO[key]||{}).map(([status,cd])=>(
+                <div key={status} className="cadencia-item">
+                  <div className="cadencia-day">D+{cd.d}</div>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:11,color:"var(--muted)",marginBottom:2}}>{STATUS_LABELS[status]}</div>
+                    <div className="cadencia-msg">{cd.msg.replace("{nome}","[Paciente]").replace("{objecao}","[objeção]").replace("{medicamento}","[medicamento]")}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── RELATÓRIOS ───────────────────────────────────────────────────
+function Relatorios({pacientes,interacoes}){
+  const total=pacientes.length;
+  const por_esteira=Object.fromEntries(Object.keys(ESTEIRAS).map(k=>[k,pacientes.filter(p=>p.esteira===k).length]));
+  const por_risco={alto:0,medio:0,baixo:0};
+  pacientes.forEach(p=>por_risco[riskScore(p)]++);
+  const perdidos=pacientes.filter(p=>p.status==="perdido").length;
+  const taxa_conversao_lead=por_esteira.lead>0?Math.round((pacientes.filter(p=>p.status==="agendou").length/por_esteira.lead)*100):0;
+  const glp1_opp=pacientes.filter(p=>p.esteira==="glp1"&&(p.status==="plato"||p.status==="descontinuou"||p.status==="candidato_esg")).length;
+
+  return (
+    <div>
+      <div className="page-header">
+        <div className="page-title">📈 Relatórios</div>
+        <div className="page-sub">Inteligência de dados da jornada</div>
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16,marginBottom:20}}>
+        {[
+          {l:"Taxa conversão lead→consulta",v:`${taxa_conversao_lead}%`,c:"var(--blue)"},
+          {l:"Pacientes perdidos",v:perdidos,c:"var(--red)"},
+          {l:"GLP-1 — oportunidade ESG",v:glp1_opp,c:"var(--green)"},
+          {l:"Alto risco",v:por_risco.alto,c:"var(--red)"},
+          {l:"Médio risco",v:por_risco.medio,c:"var(--warn)"},
+          {l:"Baixo risco",v:por_risco.baixo,c:"var(--green)"},
+        ].map((k,i)=>(
+          <div key={i} className="kpi">
+            <div className="kpi-label">{k.l}</div>
+            <div className="kpi-value" style={{color:k.c}}>{k.v}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+        <div className="card">
+          <div style={{fontWeight:700,fontSize:15,marginBottom:16}}>Volume por esteira</div>
+          {Object.entries(ESTEIRAS).map(([key,e])=>{
+            const n=por_esteira[key]||0;
+            const pct=total>0?Math.round(n/total*100):0;
+            return (
+              <div key={key} style={{marginBottom:14}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:5,fontSize:13}}>
+                  <span>{e.icon} {e.label}</span>
+                  <span style={{fontWeight:700}}>{n} <span style={{color:"var(--muted)",fontWeight:400}}>({pct}%)</span></span>
+                </div>
+                <div style={{height:8,background:"var(--s2)",borderRadius:4}}>
+                  <div style={{height:8,background:e.color,borderRadius:4,width:`${pct}%`}}/>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="card">
+          <div style={{fontWeight:700,fontSize:15,marginBottom:16}}>🎯 Radar GLP-1 → ESG</div>
+          <div style={{padding:"12px 0",borderBottom:"1px solid var(--border)",display:"flex",justifyContent:"space-between"}}>
+            <span style={{fontSize:13,color:"var(--muted)"}}>Em uso ativo</span>
+            <span style={{fontWeight:700}}>{pacientes.filter(p=>p.esteira==="glp1"&&p.status==="em_uso").length}</span>
+          </div>
+          <div style={{padding:"12px 0",borderBottom:"1px solid var(--border)",display:"flex",justifyContent:"space-between"}}>
+            <span style={{fontSize:13,color:"var(--warn)"}}>Em platô</span>
+            <span style={{fontWeight:700,color:"var(--warn)"}}>{pacientes.filter(p=>p.esteira==="glp1"&&p.status==="plato").length}</span>
+          </div>
+          <div style={{padding:"12px 0",borderBottom:"1px solid var(--border)",display:"flex",justifyContent:"space-between"}}>
+            <span style={{fontSize:13,color:"var(--red)"}}>Descontinuou</span>
+            <span style={{fontWeight:700,color:"var(--red)"}}>{pacientes.filter(p=>p.esteira==="glp1"&&p.status==="descontinuou").length}</span>
+          </div>
+          <div style={{padding:"12px 0",borderBottom:"1px solid var(--border)",display:"flex",justifyContent:"space-between"}}>
+            <span style={{fontSize:13,color:"var(--green)"}}>Candidato a ESG</span>
+            <span style={{fontWeight:700,color:"var(--green)"}}>{pacientes.filter(p=>p.esteira==="glp1"&&p.status==="candidato_esg").length}</span>
+          </div>
+          <div style={{padding:"14px 0 0",background:"var(--teal10)",borderRadius:8,padding:12,marginTop:12}}>
+            <div style={{fontSize:12,color:"var(--tealL)",fontWeight:600}}>💡 Oportunidade total</div>
+            <div style={{fontSize:28,fontWeight:700,color:"var(--tealL)",marginTop:4}}>{glp1_opp}</div>
+            <div style={{fontSize:12,color:"var(--muted)"}}>pacientes GLP-1 prontos para conversa sobre ESG</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── RENDER ───────────────────────────────────────────────────────
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
