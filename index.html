@@ -261,13 +261,12 @@ function getSupa(){
   if(supaClient) return supaClient;
   const url=localStorage.getItem("cf_url");
   const key=localStorage.getItem("cf_key");
-  if(!url||!key) return null;
+  if(!url||!key) throw new Error("Supabase não configurado — recarregue e configure novamente");
   supaClient=window.supabase.createClient(url,key);
   return supaClient;
 }
 async function db(table,method="GET",body=null,qs=""){
   const supa=getSupa();
-  if(!supa) throw new Error("Supabase não configurado");
   let q=supa.from(table);
   if(method==="GET"){
     const {data,error}=await q.select("*").order("criado_em",{ascending:false});
@@ -496,9 +495,16 @@ function MainApp({user,page,setPage,onLogout}){
       setPacientes(pacs||[]);
       setInteracoes(ints||[]);
     }catch(e){
-      // Se tabelas não existem ainda, usa dados demo
-      setPacientes(DEMO_PACIENTES);
-      setInteracoes([]);
+      console.error("loadAll erro:",e.message);
+      // Só usa demo se for erro de configuração, não de tabela
+      if(e.message&&e.message.includes("não configurado")){
+        setPacientes(DEMO_PACIENTES);
+      } else {
+        // Tabelas existem mas deu outro erro — mostrar vazio
+        setPacientes([]);
+        setInteracoes([]);
+        toast("Erro ao carregar: "+e.message,"error");
+      }
     }finally{setLoading(false);}
   },[]);
 
@@ -854,9 +860,8 @@ function Pacientes({pacientes,interacoes,reload}){
       await reload();
       setModal(null);
     }catch(e){
-      // Demo mode — atualiza local
-      toast("Salvo em modo demo","success");
-      setModal(null);
+      toast("Erro ao salvar: " + e.message,"error");
+      console.error("savePaciente erro:",e);
     }
   }
 
