@@ -403,9 +403,13 @@ const CADENCIAS_MODELO={
 
 // ── COMPONENTE PRINCIPAL ─────────────────────────────────────────
 function App(){
+  const SUPA_URL="https://ojbbjgqfjzygdenwtwrz.supabase.co";
+  const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qYmJqZ3Fmanp5Z2Rlbnd0d3J6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzMTMwNzksImV4cCI6MjA1Nzg4OTA3OX0.aMFG3M9Ll5iGQ-ZamREUK9LvN3YhK40RBg8R0gH5bVFg";
+  if(!localStorage.getItem("cf_url")){localStorage.setItem("cf_url",SUPA_URL);}
+  if(!localStorage.getItem("cf_key")){localStorage.setItem("cf_key",SUPA_KEY);}
   const [config,setConfig]=useState(()=>({
-    url:localStorage.getItem("cf_url")||"",
-    key:localStorage.getItem("cf_key")||"",
+    url:localStorage.getItem("cf_url")||SUPA_URL,
+    key:localStorage.getItem("cf_key")||SUPA_KEY,
   }));
   const [user,setUser]=useState(null);
   const [page,setPage]=useState("dashboard");
